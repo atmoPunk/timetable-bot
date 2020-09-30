@@ -1,0 +1,16 @@
+[package]
+name = "timetable-bot"
+version = "0.1.0"
+authors = ["atmoPunk <atmopunk@outlook.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+carapax = "0.8.0"
+tokio = { version = "0.2.22", features = ["full"] }
+log = "0.4.11"
+simplelog = "0.8.0"
+reqwest = { version = "0.10.8", features = ["json"] }
+serde = { version = "1.0.116", features = ["derive"] }
+serde_json = "1.0.57"
