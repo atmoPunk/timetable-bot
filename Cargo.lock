@@ -1198,6 +1198,7 @@ name = "timetable-bot"
 version = "0.1.0"
 dependencies = [
  "carapax",
+ "chrono",
  "log",
  "reqwest",
  "serde",
