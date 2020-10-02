@@ -7,8 +7,8 @@ pub struct Lesson {
     lesson_type: String,
     link: String,
     password: Option<String>,
-    start_m: i32,
-    end_m: i32,
+    start_m: u32,
+    end_m: u32,
 }
 
 impl Lesson {
@@ -24,9 +24,14 @@ impl Lesson {
             self.lesson_type
         )
     }
+
+    pub fn is_next<T: chrono::Timelike>(&self, time: &T) -> bool {
+        let current_minutes = time.hour() * 60 + time.minute();
+        current_minutes - 3 < self.start_m
+    }
 }
 
-pub(crate) async fn get_day_timetable(day: &str) -> Result<Vec<Lesson>, reqwest::Error> {
+pub async fn get_day_timetable(day: &str) -> Result<Vec<Lesson>, reqwest::Error> {
     let lessons = reqwest::get(&format!("http://localhost:8000/timetable/{}", day))
         .await?
         .json::<Vec<Lesson>>()

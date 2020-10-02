@@ -1,7 +1,7 @@
 use chrono::Datelike;
 use std::convert::TryFrom;
 
-pub(crate) struct WeekdayWrapper(chrono::Weekday);
+pub struct WeekdayWrapper(chrono::Weekday);
 
 impl WeekdayWrapper {
     pub fn to_json_file(&self) -> &'static str {
