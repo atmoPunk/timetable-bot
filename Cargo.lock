@@ -1249,6 +1249,7 @@ dependencies = [
  "chrono",
  "dotenv",
  "log",
+ "once_cell",
  "reqwest",
  "serde",
  "serde_json",

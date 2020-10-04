@@ -1,8 +1,43 @@
 use crate::context::Context;
 use crate::lesson::{get_day_timetable, print_day};
 use crate::weekday_wrapper::WeekdayWrapper;
+
 use carapax::{methods::SendMessage, types::Command, ExecuteError};
+
+use std::collections::HashSet;
 use std::convert::TryFrom;
+
+use once_cell::sync::OnceCell;
+
+pub static AUTHORIZED_USERS: OnceCell<HashSet<String>> = OnceCell::new();
+
+pub async fn authorize(
+    context: &Context,
+    command: &Command,
+) -> Result<(), Result<carapax::HandlerResult, ExecuteError>> {
+    let chat_id = command.get_message().get_chat_id();
+    let username = command
+        .get_message()
+        .get_user()
+        .unwrap()
+        .username
+        .as_ref()
+        .unwrap();
+    if !AUTHORIZED_USERS.get().unwrap().contains(username) {
+        info!("Unauthorized user: {}", &username);
+        let method = SendMessage::new(
+            chat_id,
+            "You are not authorized, please contact @atmosphericPunk if you want to gain access",
+        );
+        Err(context
+            .api
+            .execute(method)
+            .await
+            .map(|_| carapax::HandlerResult::Stop))
+    } else {
+        Ok(())
+    }
+}
 
 #[carapax::handler(command = "/set_group")]
 pub async fn set_group_handler(
@@ -15,6 +50,10 @@ pub async fn set_group_handler(
         "Got command /set_group from {} with args {:?}",
         chat_id, args
     );
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
 
     if args.is_empty() {
         let method = SendMessage::new(chat_id, "Possible group values are: M4140 or M4141");
@@ -46,6 +85,11 @@ pub async fn get_group_handler(
 ) -> Result<carapax::HandlerResult, ExecuteError> {
     let chat_id = command.get_message().get_chat_id();
     info!("Got command /get_group from {}", chat_id);
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
     let mut session = context.session_manager.get_session(&command).unwrap();
     let group: Option<String> = session.get("group").await.unwrap();
     let message = match group {
@@ -66,6 +110,11 @@ pub async fn get_today_handler(
 ) -> Result<carapax::HandlerResult, ExecuteError> {
     let chat_id = command.get_message().get_chat_id();
     info!("Got command /get_today from {}", chat_id);
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
     let day = WeekdayWrapper::get_today();
     let lessons = get_day_timetable(day.to_json_file()).await?;
     let method = carapax::methods::SendMessage::new(chat_id, print_day(&lessons))
@@ -82,6 +131,11 @@ pub async fn get_next_lesson_handler(
 ) -> Result<carapax::HandlerResult, ExecuteError> {
     let chat_id = command.get_message().get_chat_id();
     info!("Got command /get_next_lesson from {}", chat_id);
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
     let day = WeekdayWrapper::get_today();
     let lessons = get_day_timetable(day.to_json_file()).await?;
     let current_time = chrono::Local::now();
@@ -105,6 +159,11 @@ pub async fn get_day_handler(
     let chat_id = command.get_message().get_chat_id();
     let args = command.get_args();
     info!("Got command /get_day from {} with args {:?}", chat_id, args);
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
     let day = WeekdayWrapper::try_from(&args[0][..]);
     if day.is_err() {
         let method =

@@ -15,7 +15,7 @@ async fn main() {
     )
     .unwrap();
 
-    dotenv::dotenv().ok();
+    dotenv::dotenv().expect(".env not found");
 
     let token = std::env::var("CARAPAX_TOKEN").expect("CARAPAX_TOKEN is not set");
     let config = carapax::Config::new(token);
@@ -23,6 +23,16 @@ async fn main() {
     let session_dir = std::env::var("SESSION_DIRECTORY").unwrap();
     let session_dir = std::path::PathBuf::from(session_dir);
     let backend = carapax::session::backend::fs::FilesystemBackend::new(&session_dir);
+
+    let authorized_users = std::env::var("AUTHORIZED_USERS")
+        .unwrap()
+        .trim()
+        .split(',')
+        .map(|s| s.to_string())
+        .collect::<std::collections::HashSet<String>>();
+
+    handlers::AUTHORIZED_USERS.set(authorized_users).unwrap();
+
     let mut dispatcher = carapax::Dispatcher::new(context::Context {
         api: api.clone(),
         session_manager: carapax::session::SessionManager::new(backend),
