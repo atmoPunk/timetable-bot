@@ -7,21 +7,27 @@ pub struct Lesson {
     lesson_type: String,
     link: String,
     password: Option<String>,
+    group: Option<String>,
     start_m: u32,
     end_m: u32,
 }
 
 impl Lesson {
     pub fn print(&self) -> String {
+        let pass = match &self.password {
+            Some(pwd) => format!(" Пароль: {}", pwd),
+            None => String::new(),
+        };
         format!(
-            "{:02}:{:02} \\- {:02}:{:02}\t[{}]({}) \\({}\\)",
+            "{:02}:{:02} \\- {:02}:{:02}\t[{}]({}) \\({}\\){}",
             self.start_m / 60,
             self.start_m % 60,
             self.end_m / 60,
             self.end_m % 60,
             self.name.replace("+", "\\+"),
             self.link,
-            self.lesson_type
+            self.lesson_type,
+            pass
         )
     }
 
@@ -31,11 +37,17 @@ impl Lesson {
     }
 }
 
-pub async fn get_day_timetable(day: &str) -> Result<Vec<Lesson>, reqwest::Error> {
+pub async fn get_day_timetable(
+    day: &str,
+    group: Option<&str>,
+) -> Result<Vec<Lesson>, reqwest::Error> {
     let lessons = reqwest::get(&format!("http://localhost:8000/timetable/{}", day))
         .await?
         .json::<Vec<Lesson>>()
-        .await?;
+        .await?
+        .into_iter()
+        .filter(|les| les.group.is_none() || group.is_none() || les.group.as_deref() == group)
+        .collect();
     Ok(lessons)
 }
 

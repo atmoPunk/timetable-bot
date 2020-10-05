@@ -115,8 +115,11 @@ pub async fn get_today_handler(
         return e;
     }
 
+    let mut session = context.session_manager.get_session(&command).unwrap();
+    let group: Option<String> = session.get("group").await.unwrap();
     let day = WeekdayWrapper::get_today();
-    let lessons = get_day_timetable(day.to_json_file()).await?;
+
+    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
     let method = carapax::methods::SendMessage::new(chat_id, print_day(&lessons))
         .disable_web_page_preview(true)
         .parse_mode(carapax::types::ParseMode::MarkdownV2);
@@ -136,8 +139,10 @@ pub async fn get_next_lesson_handler(
         return e;
     }
 
+    let mut session = context.session_manager.get_session(&command).unwrap();
+    let group: Option<String> = session.get("group").await.unwrap();
     let day = WeekdayWrapper::get_today();
-    let lessons = get_day_timetable(day.to_json_file()).await?;
+    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
     let current_time = chrono::Local::now();
     let next_lesson = lessons.iter().find(|&l| l.is_next(&current_time));
     let message = match next_lesson {
@@ -172,7 +177,9 @@ pub async fn get_day_handler(
         return Ok(carapax::HandlerResult::Stop);
     }
     let day = day.unwrap();
-    let lessons = get_day_timetable(day.to_json_file()).await?;
+    let mut session = context.session_manager.get_session(&command).unwrap();
+    let group: Option<String> = session.get("group").await.unwrap();
+    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
     let method = carapax::methods::SendMessage::new(chat_id, print_day(&lessons))
         .disable_web_page_preview(true)
         .parse_mode(carapax::types::ParseMode::MarkdownV2);
