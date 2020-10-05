@@ -11,6 +11,18 @@ use once_cell::sync::OnceCell;
 
 pub static AUTHORIZED_USERS: OnceCell<HashSet<String>> = OnceCell::new();
 
+static HELP_MESSAGE: &str = "\
+/set_group <GROUP> - указать свою учебную группу. \
+    Возможные аргументы: M4140 | M4141
+/set_algorithms_group <GROUP> - указать свою группу по алгоритмам. \
+    Возможные аргументы: Lapenok | Mishunin | Korablinov
+/set_combinatorics_group <GROUP> - указать свою группу по комбинаторике. \
+    Возможные аргументы: Samoylova | Korablinov
+/get_day <DAY> - получить расписание на день недели. \
+    Возможные аргументы: Понедельник, thursday, ...
+/get_today - расписание на сегодня
+/get_next_lesson - получить следующую сегодняшнюю пару";
+
 pub struct UserGroups<'a> {
     pub group: Option<&'a str>,
     pub combinatorics: Option<&'a str>,
@@ -43,6 +55,29 @@ pub async fn authorize(
     } else {
         Ok(())
     }
+}
+
+#[carapax::handler(command = "/help")]
+pub async fn help_handler(
+    context: &Context,
+    command: Command,
+) -> Result<carapax::HandlerResult, ExecuteError> {
+    let chat_id = command.get_message().get_chat_id();
+    let args = command.get_args();
+    info!(
+        "Got command /set_algorithms_group from {} with args {:?}",
+        chat_id, args
+    );
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
+    context
+        .api
+        .execute(SendMessage::new(chat_id, HELP_MESSAGE))
+        .await?;
+    Ok(carapax::HandlerResult::Stop)
 }
 
 #[carapax::handler(command = "/set_algorithms_group")]

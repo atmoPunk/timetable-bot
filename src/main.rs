@@ -44,6 +44,7 @@ async fn main() {
     dispatcher.add_handler(handlers::set_algorithms_group_handler);
     dispatcher.add_handler(handlers::set_combinatorics_group_handler);
     dispatcher.add_handler(handlers::get_group_handler);
+    dispatcher.add_handler(handlers::help_handler);
     info!("Starting bot");
     carapax::longpoll::LongPoll::new(api, dispatcher)
         .run()
