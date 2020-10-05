@@ -279,6 +279,12 @@ pub async fn get_day_handler(
         return e;
     }
 
+    if args.is_empty() {
+        let method = SendMessage::new(chat_id, "Не указан день");
+        context.api.execute(method).await?;
+        return Ok(carapax::HandlerResult::Stop);
+    }
+
     let day = WeekdayWrapper::try_from(&args[0][..]);
     if day.is_err() {
         let method =
