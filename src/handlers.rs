@@ -11,6 +11,12 @@ use once_cell::sync::OnceCell;
 
 pub static AUTHORIZED_USERS: OnceCell<HashSet<String>> = OnceCell::new();
 
+pub struct UserGroups<'a> {
+    pub group: Option<&'a str>,
+    pub combinatorics: Option<&'a str>,
+    pub algorithms: Option<&'a str>,
+}
+
 pub async fn authorize(
     context: &Context,
     command: &Command,
@@ -37,6 +43,96 @@ pub async fn authorize(
     } else {
         Ok(())
     }
+}
+
+#[carapax::handler(command = "/set_algorithms_group")]
+pub async fn set_algorithms_group_handler(
+    context: &Context,
+    command: Command,
+) -> Result<carapax::HandlerResult, ExecuteError> {
+    let chat_id = command.get_message().get_chat_id();
+    let args = command.get_args();
+    info!(
+        "Got command /set_algorithms_group from {} with args {:?}",
+        chat_id, args
+    );
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
+    if args.is_empty() {
+        let method = SendMessage::new(
+            chat_id,
+            "Possible group values are: Lapenok, Mishunin or Korablinov",
+        );
+        context.api.execute(method).await?;
+        return Ok(carapax::HandlerResult::Stop);
+    }
+
+    let group = &args[0];
+    // TODO: handle cyrillic
+    if group != "Lapenok" && group != "Mishunin" && group != "Korablinov" {
+        let method = SendMessage::new(
+            chat_id,
+            "Possible group values are: Lapenok, Mishunin or Korablinov",
+        );
+        context.api.execute(method).await?;
+        return Ok(carapax::HandlerResult::Stop);
+    }
+
+    let mut session = context.session_manager.get_session(&command).unwrap();
+    session.set("algorithms", group).await.unwrap();
+    context
+        .api
+        .execute(SendMessage::new(chat_id, "Group set"))
+        .await?;
+    Ok(carapax::HandlerResult::Stop)
+}
+
+#[carapax::handler(command = "/set_combinatorics_group")]
+pub async fn set_combinatorics_group_handler(
+    context: &Context,
+    command: Command,
+) -> Result<carapax::HandlerResult, ExecuteError> {
+    let chat_id = command.get_message().get_chat_id();
+    let args = command.get_args();
+    info!(
+        "Got command /set_combinatorics_group from {} with args {:?}",
+        chat_id, args
+    );
+
+    if let Err(e) = authorize(context, &command).await {
+        return e;
+    }
+
+    if args.is_empty() {
+        let method = SendMessage::new(
+            chat_id,
+            "Possible group values are: Samoylova or Korablinov",
+        );
+        context.api.execute(method).await?;
+        return Ok(carapax::HandlerResult::Stop);
+    }
+
+    let group = &args[0];
+    // TODO: handle cyrillic
+    if group != "Samoylova" && group != "Korablinov" {
+        let method = SendMessage::new(
+            chat_id,
+            "Possible group values are: Samoylova or Korablinov",
+        );
+        context.api.execute(method).await?;
+        return Ok(carapax::HandlerResult::Stop);
+    }
+
+    let mut session = context.session_manager.get_session(&command).unwrap();
+    session.set("combinatorics", group).await.unwrap();
+    context
+        .api
+        .execute(SendMessage::new(chat_id, "Group set"))
+        .await?;
+    Ok(carapax::HandlerResult::Stop)
 }
 
 #[carapax::handler(command = "/set_group")]
@@ -117,9 +213,16 @@ pub async fn get_today_handler(
 
     let mut session = context.session_manager.get_session(&command).unwrap();
     let group: Option<String> = session.get("group").await.unwrap();
+    let combinatorics: Option<String> = session.get("combinatorics").await.unwrap();
+    let algorithms: Option<String> = session.get("algorithms").await.unwrap();
+    let user_g = UserGroups {
+        group: group.as_deref(),
+        combinatorics: combinatorics.as_deref(),
+        algorithms: algorithms.as_deref(),
+    };
     let day = WeekdayWrapper::get_today();
 
-    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
+    let lessons = get_day_timetable(day.to_json_file(), user_g).await?;
     let method = carapax::methods::SendMessage::new(chat_id, print_day(&lessons))
         .disable_web_page_preview(true)
         .parse_mode(carapax::types::ParseMode::MarkdownV2);
@@ -141,8 +244,15 @@ pub async fn get_next_lesson_handler(
 
     let mut session = context.session_manager.get_session(&command).unwrap();
     let group: Option<String> = session.get("group").await.unwrap();
+    let combinatorics: Option<String> = session.get("combinatorics").await.unwrap();
+    let algorithms: Option<String> = session.get("algorithms").await.unwrap();
+    let user_g = UserGroups {
+        group: group.as_deref(),
+        combinatorics: combinatorics.as_deref(),
+        algorithms: algorithms.as_deref(),
+    };
     let day = WeekdayWrapper::get_today();
-    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
+    let lessons = get_day_timetable(day.to_json_file(), user_g).await?;
     let current_time = chrono::Local::now();
     let next_lesson = lessons.iter().find(|&l| l.is_next(&current_time));
     let message = match next_lesson {
@@ -179,7 +289,14 @@ pub async fn get_day_handler(
     let day = day.unwrap();
     let mut session = context.session_manager.get_session(&command).unwrap();
     let group: Option<String> = session.get("group").await.unwrap();
-    let lessons = get_day_timetable(day.to_json_file(), group.as_deref()).await?;
+    let combinatorics: Option<String> = session.get("combinatorics").await.unwrap();
+    let algorithms: Option<String> = session.get("algorithms").await.unwrap();
+    let user_g = UserGroups {
+        group: group.as_deref(),
+        combinatorics: combinatorics.as_deref(),
+        algorithms: algorithms.as_deref(),
+    };
+    let lessons = get_day_timetable(day.to_json_file(), user_g).await?;
     let method = carapax::methods::SendMessage::new(chat_id, print_day(&lessons))
         .disable_web_page_preview(true)
         .parse_mode(carapax::types::ParseMode::MarkdownV2);

@@ -8,6 +8,8 @@ pub struct Lesson {
     link: String,
     password: Option<String>,
     group: Option<String>,
+    algorithms: Option<String>,
+    combinatorics: Option<String>,
     start_m: u32,
     end_m: u32,
 }
@@ -37,16 +39,28 @@ impl Lesson {
     }
 }
 
-pub async fn get_day_timetable(
-    day: &str,
-    group: Option<&str>,
+pub async fn get_day_timetable<'a, 'b>(
+    day: &'a str,
+    groups: crate::handlers::UserGroups<'b>,
 ) -> Result<Vec<Lesson>, reqwest::Error> {
     let lessons = reqwest::get(&format!("http://localhost:8000/timetable/{}", day))
         .await?
         .json::<Vec<Lesson>>()
         .await?
         .into_iter()
-        .filter(|les| les.group.is_none() || group.is_none() || les.group.as_deref() == group)
+        .filter(|les| {
+            les.group.is_none() || groups.group.is_none() || les.group.as_deref() == groups.group
+        })
+        .filter(|les| {
+            les.group.is_none()
+                || groups.algorithms.is_none()
+                || les.group.as_deref() == groups.algorithms
+        })
+        .filter(|les| {
+            les.group.is_none()
+                || groups.combinatorics.is_none()
+                || les.group.as_deref() == groups.combinatorics
+        })
         .collect();
     Ok(lessons)
 }
