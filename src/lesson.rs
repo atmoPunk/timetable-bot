@@ -52,14 +52,14 @@ pub async fn get_day_timetable<'a, 'b>(
             les.group.is_none() || groups.group.is_none() || les.group.as_deref() == groups.group
         })
         .filter(|les| {
-            les.group.is_none()
+            les.algorithms.is_none()
                 || groups.algorithms.is_none()
-                || les.group.as_deref() == groups.algorithms
+                || les.algorithms.as_deref() == groups.algorithms
         })
         .filter(|les| {
-            les.group.is_none()
+            les.combinatorics.is_none()
                 || groups.combinatorics.is_none()
-                || les.group.as_deref() == groups.combinatorics
+                || les.combinatorics.as_deref() == groups.combinatorics
         })
         .collect();
     Ok(lessons)
