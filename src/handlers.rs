@@ -21,7 +21,8 @@ static HELP_MESSAGE: &str = "\
 /get_day <DAY> - получить расписание на день недели. \
     Возможные аргументы: Понедельник, thursday, ...
 /get_today - расписание на сегодня
-/get_next_lesson - получить следующую сегодняшнюю пару";
+/get_next_lesson - получить следующую сегодняшнюю пару
+/help - получить подсказку по использованию";
 
 pub struct UserGroups<'a> {
     pub group: Option<&'a str>,
